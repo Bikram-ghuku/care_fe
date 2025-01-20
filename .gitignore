@@ -25,15 +25,14 @@ yarn-error.log*
 dist
 dev-dist
 build
-storybook-static
 .swp
 stats.json
 public/build-meta.json
 .vscode/*
 !.vscode/launch.json
+src/supportedBrowsers.ts
 
-
-# Reason React
+# Reason React  
 /lib/bs/**
 .merlin
 *.bs.js
@@ -59,3 +58,12 @@ bun.lockb
 # Cypress
 cypress/downloads
 cypress/fixtures/token.json
+
+# Care Apps
+/apps/*
+src/pluginMap.ts
+/apps_backup/*
+
+# Federation Temp files
+/.__mf__temp
+public/sbom/*

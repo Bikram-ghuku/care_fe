@@ -1,14 +1,13 @@
-import { transformIcons } from "./icon";
-import { useEffect } from "react";
+import duoToneIconData from "@/CAREUI/icons/DuoTonePaths.json";
+import iconData from "@/CAREUI/icons/UniconPaths.json";
+import "@/CAREUI/icons/icon.css";
 
-import iconData from "./UniconPaths.json";
-
-export type IconName = keyof typeof iconData;
+export type IconName = keyof typeof iconData | keyof typeof duoToneIconData;
 
 export interface CareIconProps {
   icon: IconName;
-  className?: string | undefined;
-  onClick?: React.MouseEventHandler<HTMLSpanElement> | undefined;
+  className?: string;
+  onClick?: React.MouseEventHandler<SVGSVGElement>;
   id?: string;
 }
 
@@ -26,14 +25,49 @@ export default function CareIcon({
   className,
   onClick,
 }: CareIconProps) {
-  const effectiveClassName = icon
-    ? `care-${icon} ${className ?? ""}`
-    : className;
+  // TODO: fill & strokeWidth are defined for only one icon
+  // Rethink Implementation
 
-  useEffect(() => transformIcons(), [effectiveClassName]);
+  const isDuoTone = icon.startsWith("d-");
+
+  const [viewBox, path, fill, strokeWidth, secondaryPath] = (
+    (isDuoTone ? duoToneIconData : iconData) as typeof iconData &
+      typeof duoToneIconData
+  )[icon] as [
+    number,
+    string,
+    boolean | undefined,
+    number | undefined,
+    string | undefined,
+  ];
+
+  const svgClassName = `care-svg-icon__baseline ${className || ""}`.trim();
+
   return (
-    <span id={id} onClick={onClick} key={effectiveClassName}>
-      <i className={`care ${effectiveClassName}`} />
-    </span>
+    <svg
+      id={id}
+      className={`care-${icon} ${svgClassName}`}
+      role="img"
+      xmlns="http://www.w3.org/2000/svg"
+      onClick={onClick}
+      viewBox={`0 0 ${viewBox} ${viewBox}`}
+    >
+      <path
+        d={path}
+        fill={fill === false ? "none" : "currentColor"}
+        stroke={fill === false ? "currentColor" : undefined}
+        strokeWidth={fill === false ? strokeWidth : undefined}
+      />
+      {secondaryPath && (
+        <path
+          d={secondaryPath}
+          fill={fill === false ? "none" : "currentColor"}
+          stroke={fill === false ? "currentColor" : undefined}
+          strokeWidth={fill === false ? strokeWidth : undefined}
+          // TODO: Temp. hack until we properly abstract things
+          opacity={isDuoTone ? 0.32 : 1}
+        />
+      )}
+    </svg>
   );
 }

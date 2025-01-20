@@ -1,0 +1,425 @@
+import React, {
+  ChangeEventHandler,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { useTranslation } from "react-i18next";
+import Webcam from "react-webcam";
+import { toast } from "sonner";
+
+import CareIcon from "@/CAREUI/icons/CareIcon";
+
+import { Button } from "@/components/ui/button";
+
+import DialogModal from "@/components/Common/Dialog";
+
+import useDragAndDrop from "@/hooks/useDragAndDrop";
+
+interface Props {
+  title: string;
+  open: boolean;
+  imageUrl?: string;
+  handleUpload: (file: File, onError: () => void) => Promise<void>;
+  handleDelete: (onError: () => void) => Promise<void>;
+  onClose?: () => void;
+  hint?: React.ReactNode;
+}
+
+const VideoConstraints = {
+  user: {
+    width: 1280,
+    height: 720,
+    facingMode: "user",
+  },
+  environment: {
+    width: 1280,
+    height: 720,
+    facingMode: { exact: "environment" },
+  },
+} as const;
+
+const isImageFile = (file?: File) => file?.type.split("/")[0] === "image";
+
+type IVideoConstraint =
+  (typeof VideoConstraints)[keyof typeof VideoConstraints];
+
+const AvatarEditModal = ({
+  title,
+  open,
+  imageUrl,
+  handleUpload,
+  handleDelete,
+  onClose,
+  hint,
+}: Props) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File>();
+  const [preview, setPreview] = useState<string>();
+  const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
+  const webRef = useRef<any>(null);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [isCaptureImgBeingUploaded, setIsCaptureImgBeingUploaded] =
+    useState(false);
+  const [constraint, setConstraint] = useState<IVideoConstraint>(
+    VideoConstraints.user,
+  );
+  const { t } = useTranslation();
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleSwitchCamera = useCallback(() => {
+    setConstraint(
+      constraint.facingMode === "user"
+        ? VideoConstraints.environment
+        : VideoConstraints.user,
+    );
+  }, []);
+
+  const captureImage = () => {
+    setPreviewImage(webRef.current.getScreenshot());
+    const canvas = webRef.current.getCanvas();
+    canvas?.toBlob((blob: Blob) => {
+      const myFile = new File([blob], "image.png", {
+        type: blob.type,
+      });
+      setSelectedFile(myFile);
+    });
+  };
+
+  const closeModal = () => {
+    setPreview(undefined);
+    setIsProcessing(false);
+    setSelectedFile(undefined);
+    onClose?.();
+  };
+
+  useEffect(() => {
+    if (!isImageFile(selectedFile)) {
+      return;
+    }
+    const objectUrl = URL.createObjectURL(selectedFile!);
+    setPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedFile]);
+
+  const onSelectFile: ChangeEventHandler<HTMLInputElement> = (e) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      setSelectedFile(undefined);
+      return;
+    }
+    if (!isImageFile(e.target.files[0])) {
+      toast.warning(t("please_upload_an_image_file"));
+      return;
+    }
+    setSelectedFile(e.target.files[0]);
+  };
+
+  const uploadAvatar = async () => {
+    try {
+      if (!selectedFile) {
+        closeModal();
+        return;
+      }
+
+      setIsProcessing(true);
+      setIsCaptureImgBeingUploaded(true);
+      await handleUpload(selectedFile, () => {
+        setSelectedFile(undefined);
+        setPreview(undefined);
+        setPreviewImage(null);
+        setIsCaptureImgBeingUploaded(false);
+        setIsProcessing(false);
+      });
+    } finally {
+      setIsCaptureImgBeingUploaded(false);
+      setIsProcessing(false);
+    }
+  };
+
+  const deleteAvatar = async () => {
+    setIsProcessing(true);
+    await handleDelete(() => {
+      setIsProcessing(false);
+    });
+  };
+
+  const dragProps = useDragAndDrop();
+  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    dragProps.setDragOver(false);
+    setIsDragging(false);
+    const droppedFile = e?.dataTransfer?.files[0];
+    if (!isImageFile(droppedFile))
+      return dragProps.setFileDropError("Please drop an image file to upload!");
+    setSelectedFile(droppedFile);
+  };
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    dragProps.onDragOver(e);
+    setIsDragging(true);
+  };
+
+  const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    dragProps.onDragLeave();
+    setIsDragging(false);
+  };
+
+  const defaultHint = (
+    <>
+      {t("max_size_for_image_uploaded_should_be", { maxSize: "1MB" })}
+      <br />
+      {t("allowed_formats_are", { formats: "jpg, png, jpeg" })}{" "}
+      {t("recommended_aspect_ratio_for", { aspectRatio: "1:1" })}
+    </>
+  );
+
+  const hintMessage = hint || defaultHint;
+
+  return (
+    <DialogModal
+      show={open}
+      onClose={closeModal}
+      title={title}
+      className="md:max-w-4xl"
+    >
+      <div className="flex h-full w-full items-center justify-center overflow-y-auto">
+        <div className="flex max-h-screen min-h-96 w-full flex-col overflow-auto">
+          {!isCameraOpen ? (
+            <>
+              {preview || imageUrl ? (
+                <>
+                  <div className="flex flex-1 items-center justify-center rounded-lg">
+                    <img
+                      src={preview || imageUrl}
+                      alt="cover-photo"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <p className="text-center font-medium text-secondary-700">
+                    {hintMessage}
+                  </p>
+                </>
+              ) : (
+                <div
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={onDrop}
+                  className={`mt-8 flex flex-1 flex-col items-center justify-center rounded-lg border-[3px] border-dashed px-3 py-6 ${
+                    isDragging
+                      ? "border-primary-800 bg-primary-100"
+                      : dragProps.dragOver
+                        ? "border-primary-500"
+                        : "border-secondary-500"
+                  } ${dragProps.fileDropError !== "" ? "border-red-500" : ""}`}
+                >
+                  <svg
+                    stroke="currentColor"
+                    fill="none"
+                    viewBox="0 0 48 48"
+                    aria-hidden="true"
+                    className={`h-12 w-12 stroke-[2px] ${
+                      isDragging
+                        ? "text-green-500"
+                        : dragProps.dragOver
+                          ? "text-primary-500"
+                          : "text-secondary-600"
+                    } ${
+                      dragProps.fileDropError !== ""
+                        ? "text-red-500"
+                        : "text-secondary-600"
+                    }`}
+                  >
+                    <path d="M28 8H12a4 4 0 0 0-4 4v20m32-12v8m0 0v8a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4v-4m32-4-3.172-3.172a4 4 0 0 0-5.656 0L28 28M8 32l9.172-9.172a4 4 0 0 1 5.656 0L28 28m0 0 4 4m4-24h8m-4-4v8m-12 4h.02" />
+                  </svg>
+                  <p
+                    className={`text-sm ${
+                      dragProps.dragOver
+                        ? "text-primary-500"
+                        : "text-secondary-700"
+                    } ${
+                      dragProps.fileDropError !== ""
+                        ? "text-red-500"
+                        : "text-secondary-700"
+                    } text-center`}
+                  >
+                    {dragProps.fileDropError !== ""
+                      ? dragProps.fileDropError
+                      : `${t("drag_drop_image_to_upload")}`}
+                  </p>
+                  <p className="mt-4 text-center font-medium text-secondary-700">
+                    {t("no_image_found")}. {hintMessage}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 pt-4 sm:flex-row">
+                <div>
+                  <Button id="upload-cover-image" variant="primary" asChild>
+                    <label className="cursor-pointer">
+                      <CareIcon
+                        icon="l-cloud-upload"
+                        className="text-lg mr-1"
+                      />
+                      {t("upload_an_image")}
+                      <input
+                        title="changeFile"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={onSelectFile}
+                      />
+                    </label>
+                  </Button>
+                </div>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    setConstraint(() => VideoConstraints.user);
+                    setIsCameraOpen(true);
+                  }}
+                >
+                  {`${t("open")} ${t("camera")}`}
+                </Button>
+                <div className="sm:flex-1" />
+                <Button
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeModal();
+                    dragProps.setFileDropError("");
+                  }}
+                  disabled={isProcessing}
+                >
+                  {t("cancel")}
+                </Button>
+                {imageUrl && (
+                  <Button
+                    variant="destructive"
+                    onClick={deleteAvatar}
+                    disabled={isProcessing}
+                  >
+                    {t("delete")}
+                  </Button>
+                )}
+                <Button
+                  id="save-cover-image"
+                  variant="outline"
+                  onClick={uploadAvatar}
+                  disabled={isProcessing || !selectedFile}
+                >
+                  {isProcessing ? (
+                    <CareIcon
+                      icon="l-spinner"
+                      className="animate-spin text-lg"
+                    />
+                  ) : (
+                    <CareIcon icon="l-save" className="text-lg" />
+                  )}
+                  <span>
+                    {isProcessing ? `${t("uploading")}...` : `${t("save")}`}
+                  </span>
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-1 mt-2 flex flex-col">
+                <span className="text-xl font-medium">
+                  {t("capture_cover_photo")}
+                </span>
+              </div>
+              <div className="flex flex-1 items-center justify-center">
+                {!previewImage ? (
+                  <>
+                    <Webcam
+                      audio={false}
+                      height={720}
+                      screenshotFormat="image/jpeg"
+                      width={1280}
+                      ref={webRef}
+                      videoConstraints={constraint}
+                      onUserMediaError={(_e) => {
+                        setIsCameraOpen(false);
+                        toast.warning(t("camera_permission_denied"));
+                      }}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <img src={previewImage} />
+                  </>
+                )}
+              </div>
+              {/* buttons for mobile screens */}
+              <div className="flex flex-col gap-2 pt-4 sm:flex-row">
+                {!previewImage ? (
+                  <>
+                    <Button variant="primary" onClick={handleSwitchCamera}>
+                      <CareIcon icon="l-camera-change" className="text-lg" />
+                      {`${t("switch")} ${t("camera")}`}
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        captureImage();
+                      }}
+                    >
+                      <CareIcon icon="l-capture" className="text-lg" />
+                      {t("capture")}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        setPreviewImage(null);
+                      }}
+                    >
+                      {t("retake")}
+                    </Button>
+                    <Button
+                      variant="primary"
+                      disabled={isProcessing}
+                      onClick={uploadAvatar}
+                    >
+                      {isCaptureImgBeingUploaded ? (
+                        <>
+                          <CareIcon
+                            icon="l-spinner"
+                            className="animate-spin text-lg"
+                          />
+                          {`${t("submitting")}...`}
+                        </>
+                      ) : (
+                        <> {t("submit")}</>
+                      )}
+                    </Button>
+                  </>
+                )}
+                <div className="sm:flex-1"></div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setPreviewImage(null);
+                    setIsCameraOpen(false);
+                    webRef.current.stopCamera();
+                  }}
+                  disabled={isProcessing}
+                >
+                  {t("close")}
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </DialogModal>
+  );
+};
+
+export default AvatarEditModal;

@@ -1,9 +1,12 @@
-import { useTranslation } from "react-i18next";
-import useFilters from "../../Common/hooks/useFilters";
-import ButtonV2 from "../../Components/Common/components/ButtonV2";
-import CareIcon from "../icons/CareIcon";
-import SlideOver from "./SlideOver";
 import { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+
+import CareIcon from "@/CAREUI/icons/CareIcon";
+import SlideOver from "@/CAREUI/interactive/SlideOver";
+
+import { Button } from "@/components/ui/button";
+
+import useFilters from "@/hooks/useFilters";
 
 type AdvancedFilter = ReturnType<typeof useFilters>["advancedFilter"];
 
@@ -28,20 +31,19 @@ export default function FiltersSlideover({
       setOpen={advancedFilter.setShow}
       title={
         <div className="flex items-center justify-between">
-          <span className="text-lg font-bold">{t("advanced_filters")}</span>
+          <span className="text-lg font-bold">{t("filters")}</span>
           <div className="mr-2 flex items-center justify-end gap-1">
-            <ButtonV2
-              variant="danger"
-              ghost
-              onClick={onClear}
-              id="clear-filter"
-            >
+            <Button variant="ghost" onClick={onClear} id="clear-filter">
               <CareIcon icon="l-filter-slash" className="text-lg" />
               <span>{t("clear")}</span>
-            </ButtonV2>
-            <ButtonV2 ghost onClick={onApply} id="apply-filter">
+            </Button>
+            <Button
+              variant="outline_primary"
+              onClick={onApply}
+              id="apply-filter"
+            >
               {t("apply")}
-            </ButtonV2>
+            </Button>
           </div>
         </div>
       }
@@ -55,15 +57,14 @@ export default function FiltersSlideover({
 export const AdvancedFilterButton = ({ onClick }: { onClick: () => void }) => {
   const { t } = useTranslation();
   return (
-    <ButtonV2
-      ghost
-      border
-      className="w-full bg-white md:w-auto"
+    <Button
+      variant={"outline_primary"}
       onClick={onClick}
       id="advanced-filter"
+      className="gap-2"
     >
       <CareIcon icon="l-filter" />
-      <span className="py-0.5">{t("advanced_filters")}</span>
-    </ButtonV2>
+      <span className="py-0.5">{t("filters")}</span>
+    </Button>
   );
 };

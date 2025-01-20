@@ -1,5 +1,6 @@
-import { classNames } from "../../Utils/utils";
-import CareIcon, { IconName } from "../icons/CareIcon";
+import CareIcon, { IconName } from "@/CAREUI/icons/CareIcon";
+
+import { classNames } from "@/Utils/utils";
 
 interface Props {
   count: number;
@@ -11,15 +12,13 @@ interface Props {
 
 export default function CountBlock(props: Props) {
   return (
-    <div
-      className={classNames("rounded-lg bg-white p-4 shadow", props.className)}
-    >
-      <dl>
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100 text-xl">
+    <div className={classNames("rounded-lg", props.className)}>
+      <dl className="flex gap-3">
+        <div className="flex aspect-square h-16 items-center justify-center rounded-lg border border-black/10 bg-primary-100 text-2xl">
           <CareIcon icon={props.icon} className="text-primary-600" />
         </div>
         <div>
-          <dt className="my-2 truncate text-sm font-semibold text-secondary-700">
+          <dt className="mb-1 truncate text-sm font-semibold text-secondary-700">
             {props.text}
           </dt>
           {props.loading ? (

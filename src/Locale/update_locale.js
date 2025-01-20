@@ -1,11 +1,10 @@
 /* eslint-disable no-undef */
-
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
   writeFileSync,
-  readFileSync,
 } from "fs";
 
 const DEFAULT_LOCALE = "en";
@@ -21,7 +20,7 @@ if (lng === DEFAULT_LOCALE) {
   process.exit(1);
 }
 
-const defaultEntryFile = readFile(`./${DEFAULT_LOCALE}/index.js`);
+const defaultEntryFile = readFile(`./${DEFAULT_LOCALE}/index.ts`);
 const defaultAllJsonFiles = getAllJSONFiles(DEFAULT_LOCALE);
 
 if (existsSync(lng)) {
@@ -36,8 +35,8 @@ if (existsSync(lng)) {
     console.log(`Create: ${file}`);
   }
 
-  writeFile(`./${lng}/index.js`, defaultEntryFile);
-  console.log("Create: index.js");
+  writeFile(`./${lng}/index.ts`, defaultEntryFile);
+  console.log("Create: index.ts");
 }
 
 function compareBothFiles(defaultFile, newFile) {

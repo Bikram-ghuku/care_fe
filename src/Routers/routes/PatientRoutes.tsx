@@ -1,50 +1,50 @@
-import InvestigationReports from "../../Components/Facility/Investigations/Reports";
-import { FileUpload } from "../../Components/Patient/FileUpload";
-import { PatientManager } from "../../Components/Patient/ManagePatients";
-import { PatientHome } from "../../Components/Patient/PatientHome";
-import PatientNotes from "../../Components/Patient/PatientNotes";
-import { PatientRegister } from "../../Components/Patient/PatientRegister";
-import { DetailRoute } from "../types";
-import DeathReport from "../../Components/DeathReport/DeathReport";
-import { InsuranceDetails } from "../../Components/Patient/InsuranceDetails";
+import FileUploadPage from "@/components/Patient/FileUploadPage";
+import { patientTabs } from "@/components/Patient/PatientDetailsTab";
+import { PatientHome } from "@/components/Patient/PatientHome";
+import PatientIndex from "@/components/Patient/PatientIndex";
+import PatientRegistration from "@/components/Patient/PatientRegistration";
 
-export default {
-  "/patients": () => <PatientManager />,
-  "/patient/:id": ({ id }: DetailRoute) => <PatientHome id={id} />,
-  "/patient/:id/investigation_reports": ({ id }: DetailRoute) => (
-    <InvestigationReports id={id} />
-  ),
+import { AppRoutes } from "@/Routers/AppRouter";
+import { EncounterList } from "@/pages/Encounters/EncounterList";
+import VerifyPatient from "@/pages/Patients/VerifyPatient";
 
-  // Facility Scoped Routes
-  "/facility/:facilityId/patient": ({ facilityId }: any) => (
-    <PatientRegister facilityId={facilityId} />
+const PatientRoutes: AppRoutes = {
+  "/facility/:facilityId/patients": ({ facilityId }) => (
+    <PatientIndex facilityId={facilityId} />
   ),
-  "/facility/:facilityId/patient/:id": ({ facilityId, id }: any) => (
-    <PatientHome facilityId={facilityId} id={id} />
+  "/facility/:facilityId/encounters": ({ facilityId }) => (
+    <EncounterList facilityId={facilityId} />
   ),
-  "/facility/:facilityId/patient/:id/insurance": ({ facilityId, id }: any) => (
-    <InsuranceDetails facilityId={facilityId} id={id} />
+  "/facility/:facilityId/patients/verify": ({ facilityId }) => (
+    <VerifyPatient facilityId={facilityId} />
   ),
-  "/facility/:facilityId/patient/:id/update": ({ facilityId, id }: any) => (
-    <PatientRegister facilityId={facilityId} id={id} />
+  "/patient/:id": ({ id }) => <PatientHome id={id} page="demography" />,
+  "/facility/:facilityId/patient/create": ({ facilityId }) => (
+    <PatientRegistration facilityId={facilityId} />
   ),
-  "/facility/:facilityId/patient/:patientId/notes": ({
-    facilityId,
-    patientId,
-  }: any) => <PatientNotes patientId={patientId} facilityId={facilityId} />,
+  "/facility/:facilityId/patient/:id": ({ facilityId, id }) => (
+    <PatientHome facilityId={facilityId} id={id} page="demography" />
+  ),
+  ...patientTabs.reduce((acc: AppRoutes, tab) => {
+    acc["/facility/:facilityId/patient/:id/" + tab.route] = ({
+      facilityId,
+      id,
+    }) => <PatientHome facilityId={facilityId} id={id} page={tab.route} />;
+    return acc;
+  }, {}),
+  "/facility/:facilityId/patient/:id/update": ({ facilityId, id }) => (
+    <PatientRegistration facilityId={facilityId} patientId={id} />
+  ),
   "/facility/:facilityId/patient/:patientId/files": ({
     facilityId,
     patientId,
-  }: any) => (
-    <FileUpload
-      patientId={patientId}
+  }) => (
+    <FileUploadPage
       facilityId={facilityId}
-      consultationId=""
-      type="PATIENT"
-      hideBack={false}
-      audio={true}
-      unspecified={true}
+      patientId={patientId}
+      type="patient"
     />
   ),
-  "/death_report/:id": ({ id }: any) => <DeathReport id={id} />,
 };
+
+export default PatientRoutes;

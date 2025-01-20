@@ -1,25 +1,31 @@
-import handleResponse from "./handleResponse";
-import { RequestOptions, RequestResult, Route } from "./types";
-import { makeHeaders, makeUrl } from "./utils";
+import careConfig from "@careConfig";
 
-interface Options<TData, TBody> extends RequestOptions<TData, TBody> {
-  controller?: AbortController;
-}
+import handleResponse from "@/Utils/request/handleResponse";
+import { ApiRoute, RequestOptions, RequestResult } from "@/Utils/request/types";
+import { makeHeaders, makeUrl } from "@/Utils/request/utils";
 
+type Options<TData, TBody> = RequestOptions<TData, TBody> & {
+  signal?: AbortSignal;
+};
+
+/**
+ * @deprecated use useQuery/useMutation/callApi instead
+ *
+ * This no longer ensures that the path params are provided correctly during runtime.
+ * Usages so far works as path params were passed correctly, but this should not be used anymore.
+ */
 export default async function request<TData, TBody>(
-  { path, method, noAuth }: Route<TData, TBody>,
+  { path, method, noAuth }: ApiRoute<TData, TBody>,
   {
     query,
     body,
     pathParams,
-    controller,
     onResponse,
     silent,
-    reattempts = 3,
+    signal,
   }: Options<TData, TBody> = {},
 ): Promise<RequestResult<TData>> {
-  const signal = controller?.signal;
-  const url = makeUrl(path, query, pathParams);
+  const url = `${careConfig.apiUrl}${makeUrl(path, query, pathParams)}`;
 
   const options: RequestInit = { method, signal };
 
@@ -33,42 +39,45 @@ export default async function request<TData, TBody>(
     error: undefined,
   };
 
-  for (let i = 0; i < reattempts + 1; i++) {
-    options.headers = makeHeaders(noAuth ?? false);
+  options.headers = makeHeaders(noAuth ?? false);
 
-    try {
-      const res = await fetch(url, options);
+  try {
+    const res = await fetch(url, options);
 
-      const data = await getResponseBody<TData>(res);
+    const data = await getResponseBody<TData>(res);
 
-      result = {
-        res,
-        data: res.ok ? data : undefined,
-        error: res.ok ? undefined : (data as Record<string, unknown>),
-      };
+    result = {
+      res,
+      data: res.ok ? data : undefined,
+      error: res.ok ? undefined : (data as Record<string, unknown>),
+    };
 
-      onResponse?.(result);
-      handleResponse(result, silent);
+    onResponse?.(result);
+    handleResponse(result, silent);
 
+    return result;
+  } catch (error: any) {
+    result = { error, res: undefined, data: undefined };
+    if (error.name === "AbortError") {
       return result;
-    } catch (error: any) {
-      result = { error, res: undefined, data: undefined };
     }
   }
 
-  console.error(
-    `Request failed after ${reattempts + 1} attempts`,
-    result.error,
-  );
+  console.error(`Request failed `, result.error);
   return result;
 }
 
-async function getResponseBody<TData>(res: Response): Promise<TData> {
+export async function getResponseBody<TData>(res: Response): Promise<TData> {
   if (!(res.headers.get("content-length") !== "0")) {
     return null as TData;
   }
 
   const isJson = res.headers.get("content-type")?.includes("application/json");
+  const isImage = res.headers.get("content-type")?.includes("image");
+
+  if (isImage) {
+    return (await res.blob()) as TData;
+  }
 
   if (!isJson) {
     return (await res.text()) as TData;

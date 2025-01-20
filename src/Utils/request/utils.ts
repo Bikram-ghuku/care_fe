@@ -1,7 +1,8 @@
 import { Dispatch, SetStateAction } from "react";
-import { LocalStorageKeys } from "../../Common/constants";
-import * as Notification from "../Notifications";
-import { QueryParams, RequestOptions } from "./types";
+
+import { LocalStorageKeys } from "@/common/constants";
+
+import { QueryParams, RequestOptions } from "@/Utils/request/types";
 
 export function makeUrl(
   path: string,
@@ -15,8 +16,6 @@ export function makeUrl(
     );
   }
 
-  ensurePathNotMissingReplacements(path);
-
   if (query) {
     path += `?${makeQueryParams(query)}`;
   }
@@ -28,48 +27,38 @@ const makeQueryParams = (query: QueryParams) => {
   const qParams = new URLSearchParams();
 
   Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined) {
-      qParams.set(key, `${value}`);
+    if (value === undefined) return;
+
+    if (Array.isArray(value)) {
+      value.forEach((v) => qParams.append(key, `${v}`));
+      return;
     }
+
+    qParams.set(key, `${value}`);
   });
 
   return qParams.toString();
 };
 
-const ensurePathNotMissingReplacements = (path: string) => {
-  const missingParams = path.match(/\{.*\}/g);
+export function makeHeaders(noAuth: boolean, additionalHeaders?: HeadersInit) {
+  const headers = new Headers(additionalHeaders);
 
-  if (missingParams) {
-    const msg = `Missing path params: ${missingParams.join(
-      ", ",
-    )}. Path: ${path}`;
-    Notification.Error({ msg });
-    throw new Error(msg);
-  }
-};
+  headers.set("Content-Type", "application/json");
+  headers.append("Accept", "application/json");
 
-export function makeHeaders(noAuth: boolean) {
-  const headers = new Headers({
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  });
-
-  if (!noAuth) {
-    const token = getAuthorizationHeader();
-
-    if (token) {
-      headers.append("Authorization", token);
-    }
+  const authorizationHeader = getAuthorizationHeader();
+  if (authorizationHeader && !noAuth) {
+    headers.append("Authorization", authorizationHeader);
   }
 
   return headers;
 }
 
 export function getAuthorizationHeader() {
-  const bearerToken = localStorage.getItem(LocalStorageKeys.accessToken);
+  const accessToken = localStorage.getItem(LocalStorageKeys.accessToken);
 
-  if (bearerToken) {
-    return `Bearer ${bearerToken}`;
+  if (accessToken) {
+    return `Bearer ${accessToken}`;
   }
 
   return null;

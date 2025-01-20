@@ -1,26 +1,28 @@
 import i18n from "i18next";
-import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
-import en from "./Locale/en";
-import ta from "./Locale/ta";
-import ml from "./Locale/ml";
-import mr from "./Locale/mr";
-import kn from "./Locale/kn";
+import HttpApi from "i18next-http-backend";
+import { initReactI18next } from "react-i18next";
 
-const resources = {
-  en: { translation: en },
-  ta: { translation: ta },
-  ml: { translation: ml },
-  mr: { translation: mr },
-  kn: { translation: kn },
-};
+export const LANGUAGES = {
+  en: "English",
+  ta: "தமிழ்",
+  ml: "മലയാളം",
+  mr: "मराठी",
+  kn: "ಕನ್ನಡ",
+  hi: "हिन्दी",
+} as const;
 
 i18n
+  .use(HttpApi)
   .use(initReactI18next)
   .use(LanguageDetector)
   .init({
-    resources,
+    backend: {
+      loadPath: "/locale/{{lng}}.json",
+    },
     fallbackLng: "en",
+    load: "currentOnly",
+    supportedLngs: Object.keys(LANGUAGES),
     interpolation: {
       escapeValue: false,
       skipOnVariables: false,

@@ -1,13 +1,10 @@
-/// <reference types="cypress" />
-import "./commands";
+import { ErrorMessageItem } from "./commands";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Cypress {
     interface Chainable<Subject> {
-      login(username: string, password: string): Chainable<Subject>;
-      refreshApiLogin(username: string, password: string): Chainable<Subject>;
-      loginByApi(username: string, password: string): Chainable<Subject>;
+      loginByApi(role: string): Chainable<Subject>;
       verifyNotification(msg: string): Chainable<Subject>;
       awaitUrl(
         url: string,
@@ -15,8 +12,9 @@ declare global {
       ): Chainable<Subject>;
       getAttached(selector: string): Chainable<Subject>;
       clearAllFilters(): Chainable<Subject>;
-      submitButton(buttonText?: string): Chainable<Element>;
-      searchAndSelectOption(
+      clickSubmitButton(buttonText?: string): Chainable<Element>;
+      clickCancelButton(buttonText?: string): Chainable<Element>;
+      typeAndSelectOption(
         element: string,
         referance: string,
       ): Chainable<Element>;
@@ -24,12 +22,6 @@ declare global {
         selector: string,
         symptoms: string | string[],
       ): Chainable<Element>;
-      typeAndMultiSelectOption(
-        selector: string,
-        input: string,
-        symptoms: string | string[],
-      ): Chainable<Element>;
-      clickAndTypeDate(date: string, selector: string): Chainable<Element>;
       clickAndSelectOption(
         element: string,
         reference: string,
@@ -39,10 +31,20 @@ declare global {
         reference: string,
       ): Chainable<Element>;
       preventPrint(): Chainable<Window>;
-      closeNotification(): Chainable<Element>;
+      closeNotification(): Chainable<JQuery<HTMLElement>>;
       verifyContentPresence(
         selector: string,
         texts: string[],
+      ): Chainable<Element>;
+      verifyErrorMessages(errors: ErrorMessageItem[]): Chainable<void>;
+      typeIntoField(
+        selector: string,
+        value: string,
+        options?: {
+          clearBeforeTyping?: boolean;
+          skipVerification?: boolean;
+          delay?: number;
+        },
       ): Chainable<Element>;
     }
   }

@@ -1,7 +1,13 @@
-import { RequestResult } from "./types";
-import * as Notifications from "../Notifications";
+import { t } from "i18next";
 import { navigate } from "raviger";
+import { toast } from "sonner";
 
+import * as Notifications from "@/Utils/Notifications";
+import { RequestResult } from "@/Utils/request/types";
+
+/**
+ * @deprecated in favor of useQuery/useMutation/callApi
+ */
 export default function handleResponse(
   { res, error }: RequestResult<unknown>,
   silent?: boolean,
@@ -9,6 +15,12 @@ export default function handleResponse(
   const notify = silent ? undefined : Notifications;
 
   if (res === undefined) {
+    return;
+  }
+
+  // 404 Not Found
+  if (res.status === 404) {
+    toast.error(t("not_found"));
     return;
   }
 
@@ -20,18 +32,19 @@ export default function handleResponse(
 
   // Other Errors between 400-599 (inclusive)
   if (res.status >= 400 && res.status < 600) {
-    // Invalid token
-    if (!silent && error?.code === "token_not_valid") {
-      navigate(`/session-expired?redirect=${window.location.href}`);
-    }
-
-    // Handle session expiry
-    if (error?.detail === "Authentication credentials were not provided.") {
-      notify?.Error({ msg: "Session expired. Please Login again." });
+    // Handle invalid token / session expiry
+    if (
+      !silent &&
+      (error?.code === "token_not_valid" ||
+        error?.detail === "Authentication credentials were not provided.")
+    ) {
+      if (!location.pathname.startsWith("/session-expired")) {
+        navigate(`/session-expired?redirect=${window.location.href}`);
+      }
       return;
     }
 
-    notify?.Error({ msg: error?.detail || "Something went wrong...!" });
+    toast.error((error?.detail as string) || t("something_went_wrong"));
     return;
   }
 }

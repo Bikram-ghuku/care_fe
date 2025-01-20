@@ -1,9 +1,23 @@
-import ManageUsers from "../../Components/Users/ManageUsers";
-import { UserAdd } from "../../Components/Users/UserAdd";
-import UserProfile from "../../Components/Users/UserProfile";
+import UserHome from "@/components/Users/UserHome";
 
-export default {
-  "/users": () => <ManageUsers />,
-  "/users/add": () => <UserAdd />,
-  "/user/profile": () => <UserProfile />,
+import { AppRoutes } from "@/Routers/AppRouter";
+
+const UserRoutes: AppRoutes = {
+  "/facility/:facilityId/users/:username": ({ facilityId, username }) => (
+    <UserHome facilityId={facilityId} username={username} tab="profile" />
+  ),
+  "/facility/:facilityId/users/:username/:tab": ({
+    facilityId,
+    username,
+    tab,
+  }) => <UserHome facilityId={facilityId} username={username} tab={tab} />,
+  "/users/:username": ({ username }) => (
+    <UserHome username={username} tab="profile" />
+  ),
+  "/users/:username/:tab": ({ username, tab }) => (
+    <UserHome username={username} tab={tab} />
+  ),
+  "/user/:tab": ({ tab }) => <UserHome tab={tab} />,
 };
+
+export default UserRoutes;

@@ -1,25 +1,24 @@
+import careConfig from "@careConfig";
 import { useEffect } from "react";
-import useConfig from "../Common/hooks/useConfig";
 
 interface Props {
   disabled?: boolean;
 }
 
 export default function Sentry({ disabled }: Props) {
-  const { sentry_dsn, sentry_environment } = useConfig();
-
   useEffect(() => {
-    if (disabled || !sentry_dsn) {
+    if (disabled) return;
+    if (!careConfig.sentry.dsn || !careConfig.sentry.environment) {
+      console.error(
+        "Sentry is not configured correctly. Please check your environment variables.",
+      );
       return;
     }
 
     import("@sentry/browser").then((Sentry) => {
-      Sentry.init({
-        environment: sentry_environment,
-        dsn: sentry_dsn,
-      });
+      Sentry.init(careConfig.sentry);
     });
-  }, [sentry_dsn, sentry_environment, disabled]);
+  }, [disabled]);
 
   return null;
 }
